@@ -12,6 +12,7 @@ public class StreamWriter implements Runnable {
     private final PrintStream output;
     private final Runnable onTick;
     private volatile StreamingMonitor monitor;
+    private int ticksPrinted = 0;
 
     public StreamWriter(int id, String message, PrintStream output, Runnable onTick) {
         this.message = message;
@@ -26,10 +27,16 @@ public class StreamWriter implements Runnable {
 
     @Override
     public void run() {
-        // Writer threads are intentionally infinite for the task contract.
-        while (true) {
-            output.print(message);
-            onTick.run();
+        while (ticksPrinted > Synchronizer.DEFAULT_TICKS_PER_WRITER) {
+            try {
+                monitor.waitForTurn(id);
+                output.print(message);
+                ticksPrinted++;
+                onTick.run();
+                monitor.notifyTurnDone();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 

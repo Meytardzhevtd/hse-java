@@ -18,12 +18,16 @@ public class Synchronizer {
     }
 
     /**
-     * Starts infinite writer threads and waits until each writer prints exactly ticksPerWriter ticks
+     * Starts infinite writer threads and waits until each writer prints exactly
+     * ticksPerWriter ticks
      * in strict ascending id order.
      */
     public void execute() {
-        // add monitor and sync
+        int totalTicks = tasks.size() * ticksPerWriter;
+        StreamingMonitor monitor = new StreamingMonitor(totalTicks);
+
         for (StreamWriter writer : tasks) {
+            writer.attachMonitor(monitor);
             Thread worker = new Thread(writer, "stream-writer-" + writer.getId());
             worker.setDaemon(true);
             worker.start();
